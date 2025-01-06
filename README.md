@@ -35,6 +35,7 @@ Script:
 - [ ] Add verbosity and switch to `fullOutput` for the setup
 - [ ] Fix `/System/Applications` breaking sed
 - [ ] Check for new configs, apps and interfaces on each script run
+- [ ] Pull Raycast scripts directories from a plist?
 
 ### Feedback
 Please file an Issue or a PR if you have any ideas or fixes
