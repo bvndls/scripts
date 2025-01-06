@@ -37,7 +37,7 @@ start() {
 
 case $1 in
     setup)
-        chmod +x ./populate && ./populate
+        chmod +x ./setup && ./setup
         ;;
     *)
     case $2 in
