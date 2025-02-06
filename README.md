@@ -5,9 +5,9 @@
 1. `git clone https://github.com/bvndls/scripts.git && cd scripts && cp * raycast_scripts_directory`
 2. Open Raycast, type `xray`, and select `setup`
 
-After the script is done (you'll get a Raycast toast) you're good to go!
+After the script is done you're good to go!
 Just select the config, app, interface you want and press `return`
-Raycast will hold your last selections so it'll be even faster next time
+Raycast will remember your last selections so it'll be even faster next time
 
 > Tip: assign a shortcut for this script in Raycast settings for an even faster access
 
