@@ -2,61 +2,91 @@
 
 # @raycast.schemaVersion 1
 # @raycast.title xray
-# @raycast.mode silent
+# @raycast.mode fullOutput
 # @raycast.icon 🥳
-# @raycast.argument1 {"type": "dropdown", "placeholder": "setup", "data": [{"title": "setup", "value": "setup"}]}
+# @raycast.argument1 {"type": "dropdown", "placeholder": "setup", "data": [{"title":"Setup","value":"Setup"}]}
 # @raycast.argument2
 # @raycast.argument3
 
 XRAY_BIN=$(which xray)
 if [[ -z "$XRAY_BIN" ]]; then
-exit 127
+  echo "Xray is not installed"
+  exit 127
 fi
-XRAY_CMD="$XRAY_BIN run -c $1"
+XRAY_CMD="xray run -c $1"
 
+HOST=$(jq -r '.inbounds[] | select(.protocol=="socks") | .listen' "$1")
+PORT=$(jq -r '.inbounds[] | select(.protocol=="socks") | .port' "$1")
+APP_CMD="open -a $2 --args --proxy-server=$HOST:$PORT"
 
-HOST="$(cat $1 | grep -C 3 '"protocol": "socks"' | grep '"listen"' | awk '{print $2}' | tr -d ',"' | head -n 1)"
-PORT="$(cat $1 | grep -C 3 '"protocol": "socks"' | grep '"port"' | awk '{print $2}' | tr -d ',' | head -n 1)"
-APP_CMD="open -a $2 --proxy-server=$HOST:$PORT"
+PROXY_STATUS=$(networksetup -getsocksfirewallproxy "$3" | grep "Enabled:" | cut -d ':' -f 2 | head -n 1 | xargs)
 
+proxy_on() {
+  networksetup -setsocksfirewallproxy "$1" "$HOST" "$PORT"
+  networksetup -setsocksfirewallproxystate "$1" on
+}
+
+proxy_off() {
+  networksetup -setsocksfirewallproxystate "$1" off
+}
 
 is_running() {
     pgrep -f "$1" > /dev/null 2>&1
 }
 
 stop() {
-    pkill -f "$1"
+    pkill -9 -f "$1"
     echo "⏸️"
 }
 
 start() {
-    $1 &
+    nohup $1 >/dev/null 2>&1 &
     echo "▶️"
 }
 
-
 case $1 in
-    setup)
-        chmod +x ./setup && ./setup
-        ;;
-    *)
+  Setup)
+    if [[ -f "setup" ]]; then
+      chmod +x setup && ./setup
+    else
+      echo "Setup file not found"
+      exit 1
+    fi
+    ;;
+  *)
     case $2 in
-    system)
-        PROXY_STATUS=$(networksetup -getsocksfirewallproxy $3 | grep "Enabled:" | awk '{print $2}' | head -n 1)
-        if [ "$PROXY_STATUS" == "Yes" ]; then
-        stop "$XRAY_CMD" && networksetup -setsocksfirewallproxystate $3 off
-        else
-        start "$XRAY_CMD" && networksetup -setsocksfirewallproxy $3 $HOST $PORT && networksetup -setsocksfirewallproxystate $3 on
-        fi
+      System)
+        case $PROXY_STATUS in
+          Yes)
+            if is_running "$XRAY_CMD"; then
+              proxy_off "$3"
+              stop "$XRAY_CMD"
+            else
+              start "$XRAY_CMD"
+            fi
+            ;;
+          No) 
+            if ! is_running "$XRAY_CMD"; then
+              start "$XRAY_CMD"
+            fi
+            proxy_on "$3"
+            ;;
+          *)
+            echo "Unexpected proxy status: $PROXY_STATUS"
+            ;;
+        esac
         ;;
-    *)
-        if is_running "$XRAY_CMD" && is_running "$APP_CMD"; then
-        stop "$XRAY_CMD"
-        stop "$APP_CMD"
+      *)
+        if is_running "$XRAY_CMD" && is_running "$2"; then
+          stop "$2"
+          stop "$XRAY_CMD"
+        elif is_running "$2"; then
+          start "$XRAY_CMD"
+        elif is_running "$XRAY_CMD"; then
+          start "$APP_CMD"
         else
-        start "$XRAY_CMD"
-        sleep 2
-        start "$APP_CMD"
+          start "$XRAY_CMD"
+          start "$APP_CMD"
         fi
         ;;
     esac

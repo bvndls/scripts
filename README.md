@@ -31,8 +31,9 @@ Script:
 ### To-Do
 
 - [ ] Merge populate into the script with correct `sed` operation
-- [ ] Add defaults for arguments
-- [ ] Add verbosity and switch to `fullOutput` for the setup
+- [x] Add defaults for arguments
+- [x] Add verbosity and switch to `fullOutput` for the setup
+- [ ] Fix jq parse errors (does not affect operation)
 - [ ] Fix `/System/Applications` breaking sed
 - [ ] Check for new configs, apps and interfaces on each script run
 - [ ] Pull Raycast scripts directories from a plist?
