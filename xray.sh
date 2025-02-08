@@ -4,7 +4,7 @@
 # @raycast.title xray
 # @raycast.mode fullOutput
 # @raycast.icon 🥳
-# @raycast.argument1 {"type": "dropdown", "placeholder": "setup", "data": [{"title":"Setup","value":"Setup"}]}
+# @raycast.argument1 {"type": "dropdown", "placeholder": "setup", "data": [{"title": "Setup", "value": "Setup"}]}
 # @raycast.argument2
 # @raycast.argument3
 
@@ -15,8 +15,8 @@ if [[ -z "$XRAY_BIN" ]]; then
 fi
 XRAY_CMD="xray run -c $1"
 
-HOST=$(jq -r '.inbounds[] | select(.protocol=="socks") | .listen' "$1")
-PORT=$(jq -r '.inbounds[] | select(.protocol=="socks") | .port' "$1")
+HOST=$(jq -r '.inbounds[] | select(.protocol=="socks") | .listen' "$1" 2>/dev/null)
+PORT=$(jq -r '.inbounds[] | select(.protocol=="socks") | .port' "$1" 2>/dev/null)
 APP_CMD="open -a $2 --args --proxy-server=$HOST:$PORT"
 
 PROXY_STATUS=$(networksetup -getsocksfirewallproxy "$3" | grep "Enabled:" | cut -d ':' -f 2 | head -n 1 | xargs)
@@ -46,12 +46,46 @@ start() {
 
 case $1 in
   Setup)
-    if [[ -f "setup" ]]; then
-      chmod +x setup && ./setup
-    else
-      echo "Setup file not found"
-      exit 1
-    fi
+    update_dropdown() {
+      local pattern="$1"
+      local placeholder="$2"
+      local data="$3"
+      local comment="$4"
+
+      arg="# @raycast.$comment {\"type\": \"dropdown\", \"placeholder\": \"$placeholder\", \"data\": [{\"title\": \"$pattern\", \"value\": \"$pattern\"},$data]}"
+      sed -i '' "/^# @raycast.$comment/c\\
+    $arg
+    " "$0"
+    }
+
+    echo "Updating configs dropdown"
+    configs=$(find ~ /opt -path ~/Library -prune -o -name "*.json" -exec grep -l '"inbounds"' {} + 2>/dev/null | while read -r config; do
+      if jq empty "$config" 2>/dev/null; then
+        address=$(jq -r '.outbounds[].settings.vnext[0].address // .inbounds[].settings.clients[].address' "$config" 2>/dev/null)
+        [[ -z "$address" ]] && continue
+        filename=$(basename "$config")
+        printf '{"title": "%s (%s)", "value": "%s"}\n' "$address" "$filename" "$config"
+      fi
+    done | paste -sd, -)
+    update_dropdown "Setup" "config" "$configs" "argument1"
+
+    echo "Updating apps dropdown"
+    apps=$(find /Applications -type d -name "*.app" ! -path "*/Contents/*" | while read -r app; do 
+      app_name=$(basename "$app" .app)
+      printf '{"title": "%s", "value": "%s"}\n' "$app_name" "$app_name"
+    done | paste -sd, -)
+    update_dropdown "System" "app" "$apps" "argument2"
+
+    echo "Updating ifaces dropdown"
+    ifaces=$(networksetup -listallnetworkservices | sed '1d' | while read -r iface; do
+      printf '{"title": "%s", "value": "%s"}\n' "$iface" "$iface"
+    done | paste -sd, -)
+    update_dropdown "Interface" "interface" "$ifaces" "argument3"
+
+    echo "Setting script to silent mode"
+    sed -i '' 's/^# @raycast.mode fullOutput/# @raycast.mode silent/' "$0"
+
+    echo -e "\nScript updated."
     ;;
   *)
     case $2 in
