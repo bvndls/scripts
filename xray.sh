@@ -46,17 +46,21 @@ start() {
 
 case $1 in
   Setup)
-    update_dropdown() {
-      local pattern="$1"
-      local placeholder="$2"
-      local data="$3"
-      local comment="$4"
+  update_dropdown() {
+    local pattern="$1"
+    local placeholder="$2"
+    local data="$3"
+    local comment="$4"
+    local arg="# @raycast.$comment {\"type\": \"dropdown\", \"placeholder\": \"$placeholder\", \"data\": [{\"title\": \"$pattern\", \"value\": \"$pattern\"},$data]}"
 
-      arg="# @raycast.$comment {\"type\": \"dropdown\", \"placeholder\": \"$placeholder\", \"data\": [{\"title\": \"$pattern\", \"value\": \"$pattern\"},$data]}"
+    if grep -q "^# @raycast.$comment" "$0"; then
       sed -i '' "/^# @raycast.$comment/c\\
-    $arg
+$arg
     " "$0"
-    }
+    else
+      echo -e "\n$arg" >> "$0"
+    fi
+  }
 
     echo "Updating configs dropdown"
     configs=$(find ~ /opt -path ~/Library -prune -o -name "*.json" -exec grep -l '"inbounds"' {} + 2>/dev/null | while read -r config; do
@@ -115,7 +119,9 @@ case $1 in
           stop "$2"
           stop "$XRAY_CMD"
         elif is_running "$2"; then
+          stop "$2"
           start "$XRAY_CMD"
+          start "$APP_CMD"
         elif is_running "$XRAY_CMD"; then
           start "$APP_CMD"
         else

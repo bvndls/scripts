@@ -36,8 +36,8 @@ Script:
 - [x] Fix jq parse errors (does not affect operation)
 - [x] Pull Raycast script directories from a plist?\
 `possible with ~/Library/Preferences/com.raycast.macos > NSOSPLastRootDirectory value but highly unreliable`
+- [x] Fix sed tabs in swapped raycast arugments
 - [ ] Fix `/System/Applications` breaking sed
-- [ ] Fix sed tabs in swapped raycast arugments
 - [ ] Check for new configs, apps and interfaces on each script run (background job)
 
 ### Feedback
